@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Brain Tumor Classification</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="static/style.css" />
+</head>
+<body>
+<!-- Introduction Modal -->
+<div class="modal fade" id="introModal" tabindex="-1" role="dialog" aria-labelledby="introModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="introModalLabel">Welcome to Brain Tumor Classification</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p>Our model helps in classifying brain tumors into four categories: No Tumor, Glioma, Meningioma, and Pituitary. Utilizing advanced deep learning techniques, it provides accurate predictions along with confidence levels for each classification</p>
+                <p>To get started, drag and drop a brain scan image into the designated area or click to upload. After uploading, click the submit button to see the classification results.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" data-dismiss="modal">Got it!</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container mt-5">
+    <div class="text-center mb-5">
+        <h1>Brain Tumor Classification</h1>
+    </div>
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <div class="drop-zone" id="dropZone">
+                        <p>Drag & Drop Image Here or Click to Upload (.jpg & .png format only)</p>
+                        <img id="preview" alt="Image Preview" class="img-fluid mt-3">
+                    </div>
+                    <input type="file" id="fileInput" accept="image/*" class="d-none">
+                    <div class="progress mt-3" style="height: 20px;">
+                        <div id="progressBar" class="progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
+                    </div>
+                    <div class="d-flex justify-content-between mt-3">
+                        <button id="submitButton" class="btn btn-primary">Submit</button>
+                        <button id="resetButton" class="btn btn-secondary">Reset</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <h2>Classification Result</h2>
+                    <div class="result" id="result">
+                        <p>Please upload an image and click submit to see the result.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+
+<script>
+
+    $(document).ready(function(){
+        $('#introModal').modal('show');
+    });
+
+    const dropZone = document.getElementById('dropZone');
+    const fileInput = document.getElementById('fileInput');
+    const preview = document.getElementById('preview');
+    const submitButton = document.getElementById('submitButton');
+    const resetButton = document.getElementById('resetButton');
+    const resultDiv = document.getElementById('result');
+    const progressBar = document.getElementById('progressBar');
+
+    dropZone.addEventListener('click', () => fileInput.click());
+
+    dropZone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        dropZone.classList.add('dragover');
+    });
+
+    dropZone.addEventListener('dragleave', () => {
+        dropZone.classList.remove('dragover');
+    });
+
+    dropZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropZone.classList.remove('dragover');
+        const files = e.dataTransfer.files;
+        handleFiles(files);
+    });
+
+    fileInput.addEventListener('change', () => {
+        const files = fileInput.files;
+        handleFiles(files);
+    });
+
+    function handleFiles(files) {
+        if (files.length > 0) {
+            const file = files[0];
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                preview.src = e.target.result;
+                preview.style.display = 'block';
+                imageDetails.textContent = `Name: ${file.name}, Size: ${(file.size / 1024).toFixed(2)} KB`;
+            };
+            reader.readAsDataURL(file);
+        }
+    }
+
+    submitButton.addEventListener('click', () => {
+        if (fileInput.files.length > 0) {
+            classifyImage(fileInput.files[0]);
+        } else {
+            alert('Please upload an image first.');
+        }
+    });
+
+    resetButton.addEventListener('click', () => {
+        fileInput.value = '';
+        resultDiv.innerHTML = '';
+        preview.src = '';
+        preview.style.display = 'none';
+        progressBar.style.width = '0%';
+        progressBar.textContent = '0%';
+    });
+
+    async function classifyImage(file) {
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const response = await fetch('/upload', {
+            method: 'POST',
+            body: formData,
+            onUploadProgress: (e) => {
+                const percentCompleted = Math.round((e.loaded * 100) / e.total);
+                progressBar.style.width = `${percentCompleted}%`;
+                progressBar.textContent = `${percentCompleted}%`;
+            }
+        });
+
+        const result = await response.json();
+        if (result.error) {
+            resultDiv.textContent = `Error: ${result.error}`;
+        } else {
+            const { result: prediction, confidences } = result;
+            resultDiv.innerHTML = `
+                <p>Result: ${prediction}</p>
+                <p>Confidences:</p>
+                <ul>
+                    ${Object.entries(confidences).map(([className, confidence]) => `<li>${className}: ${(confidence * 100).toFixed(2)}%</li>`).join('')}
+                </ul>
+            `;
+        }
+    }
+
+</script>
+
+</body>
+</html>
