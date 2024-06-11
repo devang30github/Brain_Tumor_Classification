@@ -1,3 +1,27 @@
-__pycache__/
-*.pyc
 uploads/
+.vercel
+# Ignore node_modules directory
+node_modules/
+
+# Ignore Python cache files
+__pycache__/
+
+# Ignore virtual environment directories
+venv/
+env/
+
+# Ignore build artifacts
+*.pyc
+*.pyo
+*.pyd
+*.tmp
+*.log
+
+# Ignore other unnecessary files
+.DS_Store
+Thumbs.db
+*.swp
+
+# Ignore build directories
+build/
+dist/
